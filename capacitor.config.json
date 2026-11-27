@@ -1,0 +1,8 @@
+{
+  "appId": "com.roborunner.game",
+  "appName": "Robo Runner",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#2a1660"
+  }
+}

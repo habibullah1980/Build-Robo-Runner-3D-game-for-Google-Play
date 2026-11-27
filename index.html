@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2a1660">
+  <title>Robo Runner</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <canvas id="game" aria-label="Robo Runner game"></canvas>
+
+  <!-- Loading -->
+  <div id="loading" class="screen center">
+    <div class="logo"><span>ROBO</span><span class="c">RUNNER</span></div>
+    <div class="loadbar"><i id="loadfill"></i></div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="menu" class="screen" hidden>
+    <div class="menu-top">
+      <div class="pill"><span class="gear-ic"></span><span id="menu-gears">0</span></div>
+      <div class="pill">Best <b id="menu-best">0</b></div>
+    </div>
+    <div class="logo big"><span>ROBO</span><span class="c">RUNNER</span></div>
+    <div class="menu-bottom">
+      <button id="btn-play" class="btn-play">PLAY</button>
+      <p class="tip">Swipe left or right to switch lanes, up to jump, down to slide.</p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div class="pill"><span class="gear-ic"></span><span id="hud-gears">0</span></div>
+      <div class="score"><span id="hud-mult" class="mult">x1</span><b id="hud-score">0</b></div>
+      <button id="btn-pause" class="round" aria-label="Pause">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+      </button>
+    </div>
+    <div id="powers" class="powers"></div>
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <!-- Pause -->
+  <div id="pause" class="screen center dim" hidden>
+    <h2>Paused</h2>
+    <button id="btn-resume" class="btn-play">RESUME</button>
+    <button id="btn-quit" class="btn-sec">Main menu</button>
+  </div>
+
+  <!-- Game over -->
+  <div id="over" class="screen center dim" hidden>
+    <h2 id="over-title">Caught!</h2>
+    <div class="card">
+      <div class="row"><span>Score</span><b id="over-score">0</b></div>
+      <div class="row"><span>Gears</span><b id="over-gears">0</b></div>
+      <div class="row"><span>Best</span><b id="over-best">0</b></div>
+    </div>
+    <p id="over-new" class="newbest" hidden>New best score!</p>
+    <button id="btn-again" class="btn-play">PLAY AGAIN</button>
+    <button id="btn-home" class="btn-sec">Main menu</button>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

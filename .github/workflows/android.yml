@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -47,6 +50,15 @@ jobs:
         with:
           name: robo-runner-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish test APK as a direct download link
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk robo-runner-test.apk
+          gh release view test-latest >/dev/null 2>&1 || gh release create test-latest --prerelease --title "Robo Runner test APK" --notes "Latest test build for phones. Not for Google Play upload (that needs the signed AAB)."
+          gh release upload test-latest robo-runner-test.apk --clobber
 
       - name: Build signed AAB for Google Play
         if: ${{ env.KEYSTORE_BASE64 != '' }}

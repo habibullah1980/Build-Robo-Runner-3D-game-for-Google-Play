@@ -41,34 +41,6 @@
   ]
  },
  {
-  "pack": "city-kit-commercial",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "city-kit-roads",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "city-kit-suburban",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "train-kit",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "car-kit",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "platformer-kit",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "space-kit",
-  "error": "no zip link on the page"
- },
- {
   "pack": "KenneyNL/Starter-Kit-City-Builder",
   "source": "https://github.com/KenneyNL/Starter-Kit-City-Builder",
   "files": [
@@ -154,6 +126,34 @@
    "models/platform.glb",
    "models/wall-high.glb",
    "models/wall-low.glb"
+  ]
+ },
+ {
+  "pack": "image ai/facade-residential.png",
+  "source": "Figma AI image generation (made for this game)",
+  "files": [
+   "ai/facade-residential.png"
+  ]
+ },
+ {
+  "pack": "image ai/facade-office.png",
+  "source": "Figma AI image generation (made for this game)",
+  "files": [
+   "ai/facade-office.png"
+  ]
+ },
+ {
+  "pack": "image ai/tram-side.png",
+  "source": "Figma AI image generation (made for this game)",
+  "files": [
+   "ai/tram-side.png"
+  ]
+ },
+ {
+  "pack": "image ai/skyline.png",
+  "source": "Figma AI image generation (made for this game)",
+  "files": [
+   "ai/skyline.png"
   ]
  }
 ]

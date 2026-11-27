@@ -1,33 +1,5 @@
 [
  {
-  "pack": "city-kit-commercial",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "city-kit-roads",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "city-kit-suburban",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "train-kit",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "car-kit",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "platformer-kit",
-  "error": "no zip link on the page"
- },
- {
-  "pack": "space-kit",
-  "error": "no zip link on the page"
- },
- {
   "pack": "polyhaven hdri the_sky_is_on_fire",
   "source": "https://polyhaven.com/a/the_sky_is_on_fire",
   "files": [
@@ -66,6 +38,122 @@
    "metal_plate_nor_1k.jpg",
    "metal_plate_rough_1k.jpg",
    "metal_plate_arm_1k.jpg"
+  ]
+ },
+ {
+  "pack": "city-kit-commercial",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "city-kit-roads",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "city-kit-suburban",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "train-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "car-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "platformer-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "space-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "KenneyNL/Starter-Kit-City-Builder",
+  "source": "https://github.com/KenneyNL/Starter-Kit-City-Builder",
+  "files": [
+   "LICENSE.md",
+   "fonts/license.txt",
+   "models/Textures/colormap.png",
+   "models/building-garage.glb",
+   "models/building-small-a.glb",
+   "models/building-small-b.glb",
+   "models/building-small-c.glb",
+   "models/building-small-d.glb",
+   "models/grass-trees-tall.glb",
+   "models/grass-trees.glb",
+   "models/grass.glb",
+   "models/pavement-fountain.glb",
+   "models/pavement.glb",
+   "models/road-corner.glb",
+   "models/road-intersection.glb",
+   "models/road-split.glb",
+   "models/road-straight-lightposts.glb",
+   "models/road-straight.glb"
+  ]
+ },
+ {
+  "pack": "KenneyNL/Starter-Kit-3D-Platformer",
+  "source": "https://github.com/KenneyNL/Starter-Kit-3D-Platformer",
+  "files": [
+   "LICENSE.md",
+   "fonts/license.txt",
+   "models/Textures/colormap.png",
+   "models/block-coin.glb",
+   "models/brick-particle.glb",
+   "models/brick.glb",
+   "models/character.glb",
+   "models/cloud.glb",
+   "models/coin.glb",
+   "models/dust.glb",
+   "models/flag.glb",
+   "models/grass-small.glb",
+   "models/grass.glb",
+   "models/platform-falling.glb",
+   "models/platform-grass-large-round.glb",
+   "models/platform-large.glb",
+   "models/platform-medium.glb",
+   "models/platform.glb"
+  ]
+ },
+ {
+  "pack": "KenneyNL/Starter-Kit-Racing",
+  "source": "https://github.com/KenneyNL/Starter-Kit-Racing",
+  "files": [
+   "LICENSE",
+   "models/Textures/colormap.png",
+   "models/decoration-empty.glb",
+   "models/decoration-forest.glb",
+   "models/decoration-tents.glb",
+   "models/track-bump.glb",
+   "models/track-corner.glb",
+   "models/track-finish.glb",
+   "models/track-straight.glb",
+   "models/track-tents.glb",
+   "models/vehicle-motorcycle.glb",
+   "models/vehicle-truck-green.glb",
+   "models/vehicle-truck-purple.glb",
+   "models/vehicle-truck-red.glb",
+   "models/vehicle-truck-yellow.glb"
+  ]
+ },
+ {
+  "pack": "KenneyNL/Starter-Kit-FPS",
+  "source": "https://github.com/KenneyNL/Starter-Kit-FPS",
+  "files": [
+   "LICENSE.md",
+   "fonts/license.txt",
+   "models/Textures/colormap.png",
+   "models/blaster-repeater.glb",
+   "models/blaster.glb",
+   "models/cloud.glb",
+   "models/enemy-flying.glb",
+   "models/grass-small.glb",
+   "models/grass.glb",
+   "models/platform-large-grass.glb",
+   "models/platform.glb",
+   "models/wall-high.glb",
+   "models/wall-low.glb"
   ]
  }
 ]

@@ -22,7 +22,10 @@ for (const slug of src.kenney) {
   try {
     const html = await get(`https://kenney.nl/assets/${slug}`);
     const m = html.match(/href="([^"]+\.zip)"/i) || html.match(/(https?:\/\/[^"'\s]+\.zip)/i);
-    if (!m) throw new Error('no zip link on the page');
+    if (!m) {
+      writeFileSync(join(OUT, `debug-${slug}.txt`), [...html.matchAll(/(href|data-[a-z-]+|src)="([^"]*(download|zip|media)[^"]*)"/gi)].map(x => x[0]).join('\n').slice(0, 5000) || html.slice(0, 3000));
+      throw new Error('no zip link on the page');
+    }
     const zipUrl = new URL(m[1].replace(/&amp;/g, '&'), 'https://kenney.nl').href;
     console.log(`${slug}: ${zipUrl}`);
     const zip = join(TMP, `${slug}.zip`);
@@ -42,9 +45,25 @@ for (const slug of src.kenney) {
   } catch (e) { console.warn(`!! ${slug}: ${e.message}`); log.push({ pack: slug, error: e.message }); }
 }
 
+for (const repo of src.github || []) {
+  const name = repo.split('/')[1].toLowerCase();
+  const dest = join(OUT, name);
+  if (existsSync(dest)) { console.log(`skip ${repo}`); continue; }
+  try {
+    const ex = join(TMP, name); rmSync(ex, { recursive: true, force: true });
+    sh(`git clone --depth 1 https://github.com/${repo}.git "${ex}"`);
+    const files = walk(ex).filter(f => !f.includes('/.git/'));
+    const keep = files.filter(f => /\.(glb|gltf|bin)$/i.test(f) || (/\.(png|jpg)$/i.test(f) && /textures?|colormap/i.test(f)) || /licen[cs]e/i.test(f));
+    if (!keep.some(f => /\.(glb|gltf)$/i.test(f))) throw new Error('no models in the repository');
+    for (const f of keep) { const to = join(dest, relative(ex, f)); mkdirSync(dirname(to), { recursive: true }); cpSync(f, to); }
+    log.push({ pack: repo, source: `https://github.com/${repo}`, files: walk(dest).map(f => relative(dest, f)) });
+  } catch (e) { console.warn(`!! ${repo}: ${e.message}`); log.push({ pack: repo, error: e.message }); }
+}
+
 const ph = join(OUT, 'polyhaven');
 mkdirSync(ph, { recursive: true });
 for (const id of src.polyhaven.hdri) {
+  if (existsSync(join(ph, `${id}_1k.hdr`))) continue;
   try {
     const files = await get(`https://api.polyhaven.com/files/${id}`, 'json');
     const url = files.hdri['1k'].hdr.url;
@@ -53,6 +72,7 @@ for (const id of src.polyhaven.hdri) {
   } catch (e) { console.warn(`!! hdri ${id}: ${e.message}`); log.push({ pack: id, error: e.message }); }
 }
 for (const id of src.polyhaven.textures) {
+  if (existsSync(join(ph, `${id}_diff_1k.jpg`))) continue;
   try {
     const files = await get(`https://api.polyhaven.com/files/${id}`, 'json');
     const saved = [];
@@ -66,5 +86,6 @@ for (const id of src.polyhaven.textures) {
   } catch (e) { console.warn(`!! texture ${id}: ${e.message}`); log.push({ pack: id, error: e.message }); }
 }
 
-writeFileSync(join(OUT, 'index.json'), JSON.stringify(log, null, 1) + '\n');
+const prev = existsSync(join(OUT, 'index.json')) ? JSON.parse(readFileSync(join(OUT, 'index.json'), 'utf8')).filter(p => p.files?.length && !log.some(l => l.pack === p.pack)) : [];
+writeFileSync(join(OUT, 'index.json'), JSON.stringify([...prev, ...log], null, 1) + '\n');
 console.log(JSON.stringify(log.map(l => ({ pack: l.pack, n: l.files?.length, error: l.error })), null, 1));

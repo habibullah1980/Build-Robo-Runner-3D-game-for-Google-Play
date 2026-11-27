@@ -1,14 +1,6 @@
 {
   "note": "Free CC0 asset packs fetched by the 'Fetch free 3D assets' workflow. CC0 means free for commercial use with no attribution required (credited in CREDITS.md anyway).",
-  "kenney": [
-    "city-kit-commercial",
-    "city-kit-roads",
-    "city-kit-suburban",
-    "train-kit",
-    "car-kit",
-    "platformer-kit",
-    "space-kit"
-  ],
+  "kenney": [],
   "polyhaven": {
     "hdri": [
       "the_sky_is_on_fire",
@@ -25,5 +17,11 @@
     "KenneyNL/Starter-Kit-3D-Platformer",
     "KenneyNL/Starter-Kit-Racing",
     "KenneyNL/Starter-Kit-FPS"
-  ]
+  ],
+  "urls": {
+    "ai/facade-residential.png": "https://www.figma.com/api/mcp/asset/1d07133a-4c00-4b26-852f-d0ad02aa73d7.png",
+    "ai/facade-office.png": "https://www.figma.com/api/mcp/asset/38b6bf5a-9572-4c55-9ffd-6895a3c9f87c.png",
+    "ai/tram-side.png": "https://www.figma.com/api/mcp/asset/1788fa32-c833-4c50-8eda-5416f4323a7f.png",
+    "ai/skyline.png": "https://www.figma.com/api/mcp/asset/d065aca7-0a3b-44ad-a3cf-75724a544491.png"
+  }
 }

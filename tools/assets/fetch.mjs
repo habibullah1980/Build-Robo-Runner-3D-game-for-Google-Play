@@ -86,6 +86,18 @@ for (const id of src.polyhaven.textures) {
   } catch (e) { console.warn(`!! texture ${id}: ${e.message}`); log.push({ pack: id, error: e.message }); }
 }
 
+for (const [name, url] of Object.entries(src.urls || {})) {
+  const dest = join(OUT, name);
+  if (existsSync(dest)) continue;
+  try {
+    mkdirSync(dirname(dest), { recursive: true });
+    const buf = await get(url, 'buf');
+    if (buf.length < 1000) throw new Error('file too small: ' + buf.toString().slice(0, 200));
+    writeFileSync(dest, buf);
+    log.push({ pack: `image ${name}`, source: 'Figma AI image generation (made for this game)', files: [name] });
+  } catch (e) { console.warn(`!! ${name}: ${e.message}`); log.push({ pack: name, error: e.message }); }
+}
+
 const prev = existsSync(join(OUT, 'index.json')) ? JSON.parse(readFileSync(join(OUT, 'index.json'), 'utf8')).filter(p => p.files?.length && !log.some(l => l.pack === p.pack)) : [];
 writeFileSync(join(OUT, 'index.json'), JSON.stringify([...prev, ...log], null, 1) + '\n');
 console.log(JSON.stringify(log.map(l => ({ pack: l.pack, n: l.files?.length, error: l.error })), null, 1));

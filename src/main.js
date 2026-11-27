@@ -6,6 +6,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import '@fontsource/lilita-one/400.css';
 import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
@@ -16,6 +17,15 @@ import {
 import { sfx, unlockAudio, setMuted } from './audio.js';
 import { createEffects } from './effects.js';
 import robotUrl from './assets/robot.glb?url';
+// painted textures (Figma AI, made for this game) and free CC0 assets (Poly Haven)
+import facadeOfficeUrl from './assets/tex/facade-office.jpg?url';
+import facadeResidentialUrl from './assets/tex/facade-residential.jpg?url';
+import tramSideUrl from './assets/tex/tram-side.jpg?url';
+import skylineUrl from './assets/tex/skyline.jpg?url';
+import asphaltNorUrl from './assets/tex/asphalt-nor.jpg?url';
+import asphaltRoughUrl from './assets/tex/asphalt-rough.jpg?url';
+import skyHdrUrl from './assets/tex/sky.hdr?url';
+
 
 // Meshy-generated models (src/assets/models/*.glb) are picked up automatically when present.
 const MODEL_URLS = Object.fromEntries(Object.entries(import.meta.glob('./assets/models/*.glb', { query: '?url', import: 'default', eager: true }))
@@ -46,7 +56,17 @@ const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 700);
 
 // canvas textures draw text, so wait (briefly) for the display font first
 await Promise.race([document.fonts.load('48px "Lilita One"'), new Promise(r => setTimeout(r, 1500))]).catch(() => {});
-initMaterials();
+const texLoader = new THREE.TextureLoader();
+const loadTex = (url, srgb = true) => texLoader.loadAsync(url).then(t => {
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return t;
+}).catch(e => { console.warn('texture failed', url, e); return null; });
+const ART = Object.fromEntries(await Promise.all(Object.entries({
+  facadeOffice: [facadeOfficeUrl], facadeResidential: [facadeResidentialUrl], tramSide: [tramSideUrl], skyline: [skylineUrl],
+  asphaltNor: [asphaltNorUrl, false], asphaltRough: [asphaltRoughUrl, false],
+}).map(async ([k, [u, srgb = true]]) => [k, await loadTex(u, srgb)])));
+initMaterials(ART);
 initGeometries();
 
 // sky dome with sunset gradient
@@ -64,6 +84,16 @@ sky.renderOrder = -1;
 scene.add(sky);
 const sunDisk = new THREE.Mesh(new THREE.CircleGeometry(30, 48), new THREE.MeshBasicMaterial({ color: 0xfff0b0, fog: false }));
 scene.add(sunDisk);
+// painted city skyline far behind everything, always at the end of the street
+let skyline = null;
+if (ART.skyline) {
+  ART.skyline.wrapS = ART.skyline.wrapT = THREE.ClampToEdgeWrapping;
+  skyline = new THREE.Mesh(new THREE.PlaneGeometry(760, 760 * 864 / 1536),
+    new THREE.MeshBasicMaterial({ map: ART.skyline, fog: false, depthWrite: false, toneMapped: false, color: 0xe6e0f0 }));
+  skyline.renderOrder = -0.5;
+  scene.add(skyline);
+  sunDisk.visible = false;
+}
 
 {
   const envScene = new THREE.Scene();
@@ -77,6 +107,14 @@ scene.add(sunDisk);
   scene.environmentIntensity = 0.85;
   pmrem.dispose();
 }
+// real sunset light from a Poly Haven HDR sky for reflections (replaces the drawn one when it loads)
+new HDRLoader().load(skyHdrUrl, hdr => {
+  hdr.mapping = THREE.EquirectangularReflectionMapping;
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromEquirectangular(hdr).texture;
+  scene.environmentIntensity = 0.42;
+  pm.dispose(); hdr.dispose();
+}, undefined, e => console.warn('sky HDR failed', e));
 scene.add(new THREE.HemisphereLight(0xd8ccff, 0x6a3a8a, 0.8));
 const sun = new THREE.DirectionalLight(0xffe2c0, 2.4);
 sun.castShadow = true;
@@ -593,8 +631,11 @@ function updateVisuals(dt, t) {
   sky.position.copy(camera.position);
   sunDisk.position.set(camera.position.x - 40, 30, camera.position.z - 420);
   sunDisk.lookAt(camera.position);
+  if (skyline) skyline.position.set(camera.position.x * 0.9, 112, camera.position.z - 430);
   road.position.set(0, 0, S.z - ROAD_LEN / 2 + 40);
   M.road.map.offset.y = -road.position.z * 16 / ROAD_LEN;
+  if (M.road.normalMap) M.road.normalMap.offset.y = -road.position.z * 110 / ROAD_LEN;
+  if (M.road.roughnessMap) M.road.roughnessMap.offset.y = -road.position.z * 110 / ROAD_LEN;
   M.walk.map.offset.y = -road.position.z * 40 / ROAD_LEN;
   walks.forEach(w => { w.position.z = road.position.z; });
   curbs.forEach(c => { c.position.z = road.position.z; });
@@ -695,4 +736,4 @@ async function boot() {
 boot().catch(err => { console.error(err); $('loadfill').style.background = '#ff3b5c'; });
 
 requestAnimationFrame(frame);
-window.__rr = { S, startRun, move, jump, slide };
+window.__rr = { S, startRun, move, jump, slide, drone, camera };

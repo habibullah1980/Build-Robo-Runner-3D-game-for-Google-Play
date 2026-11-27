@@ -206,7 +206,7 @@ export function glowTex(inner = 'rgba(255,255,255,1)', outer = 'rgba(255,255,255
 
 /* ---------------- materials ---------------- */
 export const M = {};
-export function initMaterials() {
+export function initMaterials(art = {}) {
   const liveries = [['#2f7dff', '#1b4fd0'], ['#ff5fa8', '#c2307a'], ['#22b573', '#127a4b'], ['#7b5cff', '#4a2fd0']];
   M.tramSkins = liveries.map(([a, b], i) => {
     const side = tramSideTex(a, b, 'RM-' + (10 + i * 7));
@@ -217,6 +217,16 @@ export function initMaterials() {
       accent: std(new THREE.Color(a), { roughness: 0.3, metalness: 0.5 }),
     };
   });
+  if (art.tramSide) {
+    // painted ROBO METRO livery; it is used for most trams, the drawn liveries add variety
+    const t = art.tramSide; t.repeat.set(1.9, 1);
+    const ai = {
+      side: new THREE.MeshStandardMaterial({ map: t, roughness: 0.2, metalness: 0.25, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.12 }),
+      front: M.tramSkins[0].front,
+      accent: std(0x2f6dff, { roughness: 0.3, metalness: 0.5 }),
+    };
+    M.tramSkins.push(ai, ai, ai, ai);
+  }
   M.tramBody = std(0xf4f7ff, { roughness: 0.22, metalness: 0.45 });
   M.dark = std(0x23284a, { roughness: 0.4, metalness: 0.7 });
   M.chrome = std(0xdfe6f7, { roughness: 0.12, metalness: 1 });
@@ -241,6 +251,11 @@ export function initMaterials() {
 
   M.road = new THREE.MeshStandardMaterial({ map: roadTex(), roughness: 0.55, metalness: 0.25 });
   M.road.map.repeat.set(1, 16);
+  if (art.asphaltNor) {
+    // real asphalt bumps and roughness from Poly Haven under the painted markings
+    M.road.normalMap = art.asphaltNor; M.road.normalScale.set(0.8, 0.8); art.asphaltNor.repeat.set(3, 110);
+    if (art.asphaltRough) { M.road.roughnessMap = art.asphaltRough; M.road.roughness = 1; art.asphaltRough.repeat.set(3, 110); }
+  }
   M.walk = new THREE.MeshStandardMaterial({ map: walkTex(), roughness: 0.8 });
   M.walk.map.repeat.set(2, 40);
   M.curb = std(0x8f86c8, { roughness: 0.6 });
@@ -249,6 +264,8 @@ export function initMaterials() {
   const accents = ['#7ef0ff', '#ff5fa8', '#ffd84d', '#b08cff'];
   M.facades = [];
   for (let i = 0; i < 8; i++) M.facades.push(facadeTex(accents[i % 4], i % 2));
+  // painted facades: each texture covers about 12 m by 21 m of wall
+  M.aiFacades = [art.facadeOffice, art.facadeResidential].filter(Boolean).map(t => ({ tex: t, tile: [12, 21] }));
   M.neon = [0xff5fa8, 0x7ef0ff, 0xffd84d, 0x9b8cff].map(c => new THREE.MeshBasicMaterial({ color: c }));
   M.billboards = Array.from({ length: 6 }, () => new THREE.MeshBasicMaterial({ map: billboardTex() }));
   M.vsigns = [['HOTEL', '#ff5fa8'], ['ROBO', '#7ef0ff'], ['ARCADE', '#ffd84d'], ['NOODLE', '#b6ff6b'], ['VOLT', '#ff8a2b']]
@@ -472,8 +489,15 @@ export function makeDrone() {
 export function makeBuilding(side) {
   const w = rand(4.5, 8), h = rand(10, 40), d = rand(6, 11);
   const g = new THREE.Group();
-  const tex = pick(M.facades).clone(); tex.needsUpdate = true; tex.repeat.set(w / 7, h / 14);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x9a9ee0, map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.55, metalness: 0.2 });
+  let mat;
+  if (M.aiFacades.length && Math.random() < 0.75) {
+    const f = pick(M.aiFacades);
+    const tex = f.tex.clone(); tex.needsUpdate = true; tex.repeat.set(Math.max(1, Math.round(w / f.tile[0] * 2)) / 2, h / f.tile[1]);
+    mat = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.2, roughness: 0.4, metalness: 0.1, color: 0xd8d4ec });
+  } else {
+    const tex = pick(M.facades).clone(); tex.needsUpdate = true; tex.repeat.set(w / 7, h / 14);
+    mat = new THREE.MeshStandardMaterial({ color: 0x9a9ee0, map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.55, metalness: 0.2 });
+  }
   const b = new THREE.Mesh(G.box, mat); b.scale.set(w, h, d); b.position.y = h / 2; g.add(b);
   const face = -side; // the side facing the road
   // storefront band at street level

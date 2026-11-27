@@ -1,0 +1,71 @@
+[
+ {
+  "pack": "city-kit-commercial",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "city-kit-roads",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "city-kit-suburban",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "train-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "car-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "platformer-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "space-kit",
+  "error": "no zip link on the page"
+ },
+ {
+  "pack": "polyhaven hdri the_sky_is_on_fire",
+  "source": "https://polyhaven.com/a/the_sky_is_on_fire",
+  "files": [
+   "the_sky_is_on_fire_1k.hdr"
+  ]
+ },
+ {
+  "pack": "polyhaven hdri venice_sunset",
+  "source": "https://polyhaven.com/a/venice_sunset",
+  "files": [
+   "venice_sunset_1k.hdr"
+  ]
+ },
+ {
+  "pack": "polyhaven hdri satara_night",
+  "source": "https://polyhaven.com/a/satara_night",
+  "files": [
+   "satara_night_1k.hdr"
+  ]
+ },
+ {
+  "pack": "polyhaven texture asphalt_02",
+  "source": "https://polyhaven.com/a/asphalt_02",
+  "files": [
+   "asphalt_02_diff_1k.jpg",
+   "asphalt_02_nor_1k.jpg",
+   "asphalt_02_rough_1k.jpg",
+   "asphalt_02_arm_1k.jpg"
+  ]
+ },
+ {
+  "pack": "polyhaven texture metal_plate",
+  "source": "https://polyhaven.com/a/metal_plate",
+  "files": [
+   "metal_plate_diff_1k.jpg",
+   "metal_plate_nor_1k.jpg",
+   "metal_plate_rough_1k.jpg",
+   "metal_plate_arm_1k.jpg"
+  ]
+ }
+]

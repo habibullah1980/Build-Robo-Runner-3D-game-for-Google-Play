@@ -1,10 +1,6 @@
 name: Generate 3D models (Meshy)
 
 on:
-  # editing the model list starts a generation run for any models that are missing
-  push:
-    branches: [main]
-    paths: [tools/meshy/assets.json]
   workflow_dispatch:
     inputs:
       mode:

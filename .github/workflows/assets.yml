@@ -1,0 +1,31 @@
+name: Fetch free 3D assets
+
+on:
+  push:
+    branches: [main]
+    paths: [tools/assets/sources.json, tools/assets/fetch.mjs]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: assets
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download CC0 packs
+        run: node tools/assets/fetch.mjs
+      - name: Commit the assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/kits
+          if git diff --cached --quiet; then echo "Nothing new"; exit 0; fi
+          git commit -m "Add free CC0 3D asset packs"
+          git push

@@ -1,0 +1,8 @@
+{
+  "note": "Free CC0 asset packs fetched by the 'Fetch free 3D assets' workflow. CC0 means free for commercial use with no attribution required (credited in CREDITS.md anyway).",
+  "kenney": ["city-kit-commercial", "city-kit-roads", "city-kit-suburban", "train-kit", "car-kit", "platformer-kit", "space-kit"],
+  "polyhaven": {
+    "hdri": ["the_sky_is_on_fire", "venice_sunset", "satara_night"],
+    "textures": ["asphalt_02", "metal_plate"]
+  }
+}

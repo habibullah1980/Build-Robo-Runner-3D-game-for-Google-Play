@@ -11,11 +11,15 @@ import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
 import {
   LANES, TRAM_LEN, TRAM_ROOF, RAMP_LEN, M, initMaterials, initGeometries,
-  makeTram, makeBarrier, makeBar, makeRamp, makeGear, makePower, makeDrone, makeBuilding, makeLamp, makeTree, makeBench,
+  makeTram, makeBarrier, makeBar, makeRamp, makeGear, makePower, makeDrone, makeBuilding, makeLamp, makeTree, makeBench, setTemplate,
 } from './models.js';
 import { sfx, unlockAudio, setMuted } from './audio.js';
 import { createEffects } from './effects.js';
 import robotUrl from './assets/robot.glb?url';
+
+// Meshy-generated models (src/assets/models/*.glb) are picked up automatically when present.
+const MODEL_URLS = Object.fromEntries(Object.entries(import.meta.glob('./assets/models/*.glb', { query: '?url', import: 'default', eager: true }))
+  .map(([p, url]) => [p.split('/').pop().replace('.glb', ''), url]));
 
 const $ = id => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -393,7 +397,7 @@ function slide() {
   if (S.mode !== 'run' || S.flying > 0) return;
   if (S.y > groundHeight() + 0.1) S.vy = -26;
   S.slide = 0.75; sfx.slide();
-  play('Running', 0.1, false, 1.25);
+  if (actions.Slide) play('Slide', 0.08, true, 1.3); else play('Running', 0.1, false, 1.25);
 }
 
 let touch = null;
@@ -554,7 +558,7 @@ function updateVisuals(dt, t) {
   body.rotation.y += ((S.mode === 'menu' ? Math.PI : 0) - body.rotation.y) * Math.min(1, dt * 8);
   // slide squash
   const sl = S.slide > 0 ? 1 : 0;
-  body.scale.y += ((sl ? 0.5 : 1) - body.scale.y) * Math.min(1, dt * 18);
+  body.scale.y += ((sl && !actions.Slide ? 0.5 : 1) - body.scale.y) * Math.min(1, dt * 18);
   body.rotation.x += ((sl ? -0.35 : 0) - body.rotation.x) * Math.min(1, dt * 18);
   shieldBubble.visible = S.shield || S.invuln > 0;
   shieldBubble.material.opacity = S.invuln > 0 && !S.shield ? (Math.sin(t * 30) > 0 ? 0.25 : 0.05) : 0.22;
@@ -621,8 +625,10 @@ function frame() {
 
 /* ================= boot ================= */
 const loader = new GLTFLoader();
-loader.load(robotUrl, gltf => {
-  const model = gltf.scene;
+const loadGLB = url => new Promise((res, rej) => loader.load(url, res, undefined, rej));
+const progress = p => { $('loadfill').style.width = Math.round(p * 100) + '%'; };
+
+function addHero(model, clips, fromMeshy) {
   const box = new THREE.Box3().setFromObject(model);
   const h = box.max.y - box.min.y;
   model.scale.setScalar(1.9 / h);
@@ -630,8 +636,9 @@ loader.load(robotUrl, gltf => {
   model.rotation.y = Math.PI; // face down the track (-z)
   model.traverse(o => {
     if (!o.isMesh) return;
-    o.castShadow = true; o.receiveShadow = false;
-    // repaint the robot in Bolt's colours: white shell, sky-blue joints, glowing visor accents
+    o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
+    if (fromMeshy) return;
+    // repaint the stand-in robot in Bolt's colours: white shell, sky-blue joints, glowing visor accents
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     mats.forEach(m => {
       if (m.name === 'Main') { m.color.set(0xeef3ff); m.roughness = 0.3; m.metalness = 0.25; }
@@ -641,12 +648,51 @@ loader.load(robotUrl, gltf => {
   });
   body.add(model);
   mixer = new THREE.AnimationMixer(model);
-  gltf.animations.forEach(c => { actions[c.name] = mixer.clipAction(c); });
-  mixer.addEventListener('finished', e => { if (e.action === actions.Jump && S.mode === 'run') play('Running', 0.15, false, 1.25); });
-  $('loadfill').style.width = '100%';
+  Object.entries(clips).forEach(([name, clip]) => { if (clip) actions[name] = mixer.clipAction(clip); });
+  // fall back to the running clip for anything the character lacks
+  ['Idle', 'Jump', 'Death'].forEach(n => { if (!actions[n] && actions.Running) actions[n] = actions.Running; });
+  mixer.addEventListener('finished', e => { if ((e.action === actions.Jump || e.action === actions.Slide) && S.mode === 'run') play('Running', 0.15, false, 1.25); });
+}
+
+async function boot() {
+  const props = [
+    ['tram', { x: 2.3, y: 2.9, z: TRAM_LEN }, { longAxis: 'z', shadow: true }],
+    ['drone', { x: 1.3, y: 0.9, z: 1.3 }, { uniform: true }],
+    ['barrier', { x: 2.2, y: 1.15, z: 0.45 }, { longAxis: 'x', shadow: true }],
+    ['gear', { x: 0.95, y: 0.95, z: 0.2 }, { flatAxis: 'z', uniform: true }],
+  ].filter(([n]) => MODEL_URLS[n]);
+  const total = props.length + 1;
+  let done = 0;
+  for (const [name, size, opts] of props) {
+    try { const g = await loadGLB(MODEL_URLS[name]); setTemplate(name, g.scene, size, opts); }
+    catch (e) { console.warn('model failed, using the built-in one:', name, e); }
+    progress(++done / total * 0.9);
+  }
+  // the Meshy drone replaces the built-in one
+  if (MODEL_URLS.drone) { const d2 = makeDrone(); drone.children.slice().forEach(c => drone.remove(c)); d2.children.slice().forEach(c => drone.add(c)); drone.userData = d2.userData; }
+
+  let heroDone = false;
+  if (MODEL_URLS.bolt) {
+    try {
+      const rig = await loadGLB(MODEL_URLS.bolt);
+      const clip = async (n) => (MODEL_URLS[n] ? (await loadGLB(MODEL_URLS[n])).animations[0] : null);
+      const clips = {
+        Running: await clip('bolt-run'), Jump: await clip('bolt-jump'), Death: await clip('bolt-death'),
+        Idle: (await clip('bolt-idle')) || (await clip('bolt-wave')), Wave: await clip('bolt-wave'), Slide: await clip('bolt-slide'),
+      };
+      addHero(rig.scene, clips, true);
+      heroDone = !!actions.Running;
+    } catch (e) { console.warn('Meshy hero failed, using the stand-in robot', e); }
+  }
+  if (!heroDone) {
+    const g = await loadGLB(robotUrl);
+    const byName = Object.fromEntries(g.animations.map(c => [c.name, c]));
+    addHero(g.scene, byName, false);
+  }
+  progress(1);
   setTimeout(toMenu, 250);
-}, e => { if (e.total) $('loadfill').style.width = Math.round((e.loaded / e.total) * 90) + '%'; },
-err => { console.error(err); $('loadfill').style.background = '#ff3b5c'; });
+}
+boot().catch(err => { console.error(err); $('loadfill').style.background = '#ff3b5c'; });
 
 requestAnimationFrame(frame);
 window.__rr = { S, startRun, move, jump, slide };

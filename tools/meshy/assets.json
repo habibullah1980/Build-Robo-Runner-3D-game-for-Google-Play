@@ -1,0 +1,41 @@
+{
+  "textureResolution": "2k",
+  "assets": [
+    {
+      "name": "bolt",
+      "kind": "character",
+      "heightMeters": 1.2,
+      "prompt": "Cute stylized robot kid hero for a mobile endless runner game. Small rounded body, big round glossy helmet head with a dark visor showing two glowing cyan oval eyes, pearl white and sky blue armor plates, pink glowing antenna ball on top, short arms and legs with blue joints, chunky white sneakers. Friendly Pixar-like toy style, clean smooth shapes, full body, standing in A-pose.",
+      "texturePrompt": "Glossy pearl white and sky blue plastic armor, dark glass visor with glowing cyan eyes, pink glowing antenna light, blue joints, clean toy finish, no dirt.",
+      "animations": ["jump", "slide", "death", "idle", "wave", "victory"]
+    },
+    {
+      "name": "tram",
+      "kind": "prop",
+      "polycount": 12000,
+      "prompt": "Futuristic hover tram train car for a kids mobile game. One long rounded capsule-shaped carriage, pearl white body with a blue and yellow livery stripe, big tinted windows along both sides, sliding doors, rounded front with a large windshield and round headlights, glowing hover thrusters underneath, no wheels. Stylized clean toy style.",
+      "texturePrompt": "Glossy pearl white paint, blue and yellow stripes, dark blue tinted glass windows with reflections, warm headlights, cyan glowing thrusters."
+    },
+    {
+      "name": "drone",
+      "kind": "prop",
+      "polycount": 6000,
+      "prompt": "Cute flying security drone robot for a kids mobile game. Round white egg-shaped body, one big red glowing camera eye on the front, four small propellers inside round guards, short antenna, red stripe. Stylized clean toy style.",
+      "texturePrompt": "Glossy white plastic, red glowing camera eye, red stripe, dark grey propellers."
+    },
+    {
+      "name": "barrier",
+      "kind": "prop",
+      "polycount": 3000,
+      "prompt": "Road construction barrier for a mobile game: a wide horizontal panel with orange and white diagonal stripes on two metal legs with feet, two amber warning lights on top. Stylized clean toy style.",
+      "texturePrompt": "Bright orange and white diagonal reflective stripes, dark grey metal legs, glowing amber lights."
+    },
+    {
+      "name": "gear",
+      "kind": "prop",
+      "polycount": 1500,
+      "prompt": "Shiny golden gear coin collectible for a mobile game: a thick flat gear with ten rounded teeth and a round hole in the middle. Stylized clean toy style.",
+      "texturePrompt": "Polished shiny gold metal with warm highlights."
+    }
+  ]
+}

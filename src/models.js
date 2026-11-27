@@ -309,8 +309,49 @@ export function initGeometries() {
   G.blob = new THREE.IcosahedronGeometry(1, 1);
 }
 
+/* ---------------- Meshy model templates ---------------- */
+// When a generated model is available it replaces the procedural one. Each template is
+// rotated so its long side runs down the track, then scaled to the gameplay size.
+export const T = {};
+export function setTemplate(name, object, size, opts = {}) {
+  const root = new THREE.Group();
+  const inner = object;
+  inner.traverse(o => { if (o.isMesh) { o.castShadow = !!opts.shadow; o.receiveShadow = false; } });
+  let box = new THREE.Box3().setFromObject(inner);
+  let d = box.getSize(new THREE.Vector3());
+  if (opts.longAxis === 'z' && d.x > d.z * 1.2) inner.rotation.y = Math.PI / 2;
+  if (opts.longAxis === 'x' && d.z > d.x * 1.2) inner.rotation.y = Math.PI / 2;
+  if (opts.flatAxis === 'z') { // thinnest side faces the player
+    if (d.y < d.x && d.y < d.z) inner.rotation.x = Math.PI / 2;
+    else if (d.x < d.y && d.x < d.z) inner.rotation.y = Math.PI / 2;
+  }
+  inner.updateMatrixWorld(true);
+  box = new THREE.Box3().setFromObject(inner);
+  d = box.getSize(new THREE.Vector3());
+  const c = box.getCenter(new THREE.Vector3());
+  const k = new THREE.Vector3(size.x / d.x, size.y / d.y, size.z / d.z);
+  if (opts.uniform) { const u = Math.min(k.x, k.y, k.z); k.set(u, u, u); }
+  const pivot = new THREE.Group();
+  pivot.add(inner);
+  inner.position.set(-c.x, -box.min.y, -c.z);
+  pivot.scale.copy(k);
+  root.add(pivot);
+  if (opts.y) root.position.y = opts.y;
+  T[name] = root;
+}
+const fromTemplate = name => T[name].clone(true);
+
 /* ---------------- builders ---------------- */
 export function makeTram() {
+  if (T.tram) {
+    const g = new THREE.Group();
+    const m = fromTemplate('tram'); m.position.y = 0.45; g.add(m);
+    [-TRAM_LEN / 2 + 2, TRAM_LEN / 2 - 2].forEach(z => [-0.7, 0.7].forEach(x => {
+      const gl = new THREE.Mesh(G.thrusterGlow, M.thruster); gl.rotation.x = Math.PI / 2; gl.position.set(x, 0.3, z); g.add(gl);
+    }));
+    const glow = new THREE.Mesh(G.glowPlane, M.glow); glow.rotation.x = -Math.PI / 2; glow.position.y = 0.03; g.add(glow);
+    return g;
+  }
   const g = new THREE.Group();
   const skin = pick(M.tramSkins);
   const by = 0.6 + 1.35;
@@ -341,6 +382,7 @@ export function makeTram() {
 }
 
 export function makeBarrier() {
+  if (T.barrier) { const g = fromTemplate('barrier'); g.userData.blink = []; return g; }
   const g = new THREE.Group();
   const b = new THREE.Mesh(G.barrierPanel, M.barrier); b.position.y = 0.72; b.castShadow = true; g.add(b);
   const b2 = new THREE.Mesh(G.barrierPanel, M.barrier); b2.scale.set(1, 0.5, 1); b2.position.y = 0.28; g.add(b2);
@@ -385,7 +427,7 @@ export function makeRamp() {
   return g;
 }
 
-export function makeGear() { return new THREE.Mesh(G.gear, M.gear); }
+export function makeGear() { return T.gear ? fromTemplate('gear') : new THREE.Mesh(G.gear, M.gear); }
 
 export function makePower(kind) {
   const g = new THREE.Group();
@@ -399,6 +441,13 @@ export function makePower(kind) {
 }
 
 export function makeDrone() {
+  if (T.drone) {
+    const g = new THREE.Group();
+    const m = fromTemplate('drone'); m.position.y = -0.5; m.rotation.y = Math.PI; g.add(m);
+    const lamp = new THREE.PointLight(0xff3b5c, 2.5, 5, 2); lamp.position.set(0, -0.2, -0.7); g.add(lamp);
+    g.userData.rotors = [];
+    return g;
+  }
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 20), M.drone); body.scale.y = 0.72; body.castShadow = true;
   const belly = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.dark); belly.position.y = -0.05;

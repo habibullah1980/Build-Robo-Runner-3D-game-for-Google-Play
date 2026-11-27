@@ -1,0 +1,66 @@
+name: Generate 3D models (Meshy)
+
+on:
+  # editing the model list starts a generation run for any models that are missing
+  push:
+    branches: [main]
+    paths: [tools/meshy/assets.json]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "estimate = show the cost only, generate = make the models"
+        type: choice
+        options: [estimate, generate]
+        default: estimate
+      only:
+        description: "Optional: comma-separated model names (bolt,tram,drone,barrier,gear). Empty = all missing models."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency: meshy
+
+jobs:
+  meshy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      MESHY_API_KEY: ${{ secrets.MESHY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the Meshy key
+        run: |
+          if [ -z "$MESHY_API_KEY" ]; then
+            echo "::error::Add your Meshy API key as the repository secret MESHY_API_KEY first."
+            exit 1
+          fi
+
+      - name: Run Meshy
+        run: node tools/meshy/generate.mjs "${{ inputs.mode || 'generate' }}" "${{ inputs.only }}"
+
+      - name: Keep the intermediate files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshy-work
+          path: |
+            meshy-work/
+            tools/meshy/report.json
+          if-no-files-found: ignore
+
+      - name: Commit the new models
+        if: ${{ (inputs.mode || 'generate') == 'generate' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/assets/models tools/meshy/previews tools/meshy/report.json tools/meshy/animation-catalog.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Nothing new to commit"; exit 0; fi
+          git commit -m "Add 3D models generated with Meshy"
+          git push

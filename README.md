@@ -60,3 +60,13 @@ Add these under **Settings > Secrets and variables > Actions**:
 | `KEY_PASSWORD` | The key password |
 
 Keep a safe backup of the keystore and passwords. Google Play needs the same upload key for every update.
+
+## 3D models from Meshy
+
+The **Generate 3D models (Meshy)** workflow creates Bolt (rigged, with run, jump, slide and other animations), the hover-tram, the chase drone, the barrier and the gear pickup with [Meshy](https://www.meshy.ai). The model list and prompts are in `tools/meshy/assets.json`.
+
+1. Add your Meshy API key as the repository secret `MESHY_API_KEY`.
+2. Run the workflow from the **Actions** tab. `estimate` shows the credit cost, and `generate` makes the models. Pushing a change to `tools/meshy/assets.json` also starts a generation run.
+3. The models are committed to `src/assets/models/`, with previews in `tools/meshy/previews/`. The game uses them automatically and keeps its built-in models for anything missing.
+
+Models that already exist are skipped, so a re-run only pays for what is missing. Delete a model file to regenerate it.

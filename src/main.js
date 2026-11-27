@@ -5,11 +5,16 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import '@fontsource/lilita-one/400.css';
+import '@fontsource/fredoka/600.css';
+import '@fontsource/fredoka/700.css';
 import {
   LANES, TRAM_LEN, TRAM_ROOF, RAMP_LEN, M, initMaterials, initGeometries,
-  makeTram, makeBarrier, makeBar, makeRamp, makeGear, makePower, makeDrone, makeBuilding,
+  makeTram, makeBarrier, makeBar, makeRamp, makeGear, makePower, makeDrone, makeBuilding, makeLamp, makeTree, makeBench,
 } from './models.js';
-import { sfx, unlockAudio } from './audio.js';
+import { sfx, unlockAudio, setMuted } from './audio.js';
+import { createEffects } from './effects.js';
 import robotUrl from './assets/robot.glb?url';
 
 const $ = id => document.getElementById(id);
@@ -35,6 +40,8 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xc58ad8, 45, 175);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 700);
 
+// canvas textures draw text, so wait (briefly) for the display font first
+await Promise.race([document.fonts.load('48px "Lilita One"'), new Promise(r => setTimeout(r, 1500))]).catch(() => {});
 initMaterials();
 initGeometries();
 
@@ -54,7 +61,19 @@ scene.add(sky);
 const sunDisk = new THREE.Mesh(new THREE.CircleGeometry(30, 48), new THREE.MeshBasicMaterial({ color: 0xfff0b0, fog: false }));
 scene.add(sunDisk);
 
-scene.add(new THREE.HemisphereLight(0xd8ccff, 0x6a3a8a, 1.1));
+{
+  const envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(sky.geometry, sky.material));
+  const sunE = new THREE.Mesh(new THREE.SphereGeometry(40, 16, 8), new THREE.MeshBasicMaterial({ color: 0xfff0c0 })); sunE.position.set(-60, 40, -420); envScene.add(sunE);
+  [[0xff5fa8, -200, 0], [0x7ef0ff, 200, 0], [0x7ef0ff, -200, -200], [0xff5fa8, 200, -200]].forEach(([c, x, z]) => {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(60, 160), new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide })); p.position.set(x, 60, z); p.lookAt(0, 60, 0); envScene.add(p);
+  });
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(envScene, 0.02).texture;
+  scene.environmentIntensity = 0.85;
+  pmrem.dispose();
+}
+scene.add(new THREE.HemisphereLight(0xd8ccff, 0x6a3a8a, 0.8));
 const sun = new THREE.DirectionalLight(0xffe2c0, 2.4);
 sun.castShadow = true;
 sun.shadow.mapSize.set(MOBILE ? 1024 : 2048, MOBILE ? 1024 : 2048);
@@ -68,15 +87,28 @@ scene.add(rim, rim.target);
 const ROAD_LEN = 320;
 const road = new THREE.Mesh(new THREE.PlaneGeometry(8.6, ROAD_LEN), M.road);
 road.rotation.x = -Math.PI / 2; road.receiveShadow = true; scene.add(road);
-const walks = [-1, 1].map(s => { const m = new THREE.Mesh(new THREE.PlaneGeometry(7, ROAD_LEN), M.sidewalk); m.rotation.x = -Math.PI / 2; m.position.set(s * 7.8, 0.02, 0); m.receiveShadow = true; scene.add(m); return m; });
+const walks = [-1, 1].map(s => { const m = new THREE.Mesh(new THREE.PlaneGeometry(7, ROAD_LEN), M.walk); m.rotation.x = -Math.PI / 2; m.position.set(s * 7.8, 0.25, 0); m.receiveShadow = true; scene.add(m); return m; });
+const curbs = [-1, 1].flatMap(s => {
+  const c = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, ROAD_LEN), M.curb); c.position.set(s * 4.42, 0.125, 0); c.receiveShadow = true;
+  const gl = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, ROAD_LEN), M.curbGlow); gl.position.set(s * 4.26, 0.2, 0);
+  scene.add(c, gl); return [c, gl];
+});
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, ROAD_LEN + 200), new THREE.MeshStandardMaterial({ color: 0x2a1f5c, roughness: 1 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; scene.add(ground);
 
 // post-processing glow
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.45, 0.82);
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.5, 0.8);
 composer.addPass(bloom);
+// colour grade: a touch more saturation and a soft vignette
+composer.addPass(new ShaderPass({
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(.299,.587,.114));
+      c.rgb = mix(vec3(l), c.rgb, 1.18); vec2 d = vUv - .5; c.rgb *= 1. - dot(d,d) * .55; gl_FragColor = c; }`,
+}));
 composer.addPass(new OutputPass());
 
 function resize() {
@@ -120,6 +152,7 @@ function play(name, fade = 0.15, once = false, timeScale = 1) {
 
 const drone = makeDrone();
 scene.add(drone);
+const fx = createEffects(scene);
 
 /* ================= world objects ================= */
 const obstacles = []; // {kind, lane, mesh, zFront, zBack, z, vz}
@@ -167,16 +200,13 @@ function addDecor(z0) {
     let z = z0 - rand(0, 4);
     while (z > z0 - CHUNK) {
       const b = makeBuilding(side);
-      b.position.set(side * (11.5 + b.userData.w / 2 + rand(0, 3)), 0, z);
+      b.position.set(side * (11.6 + b.userData.w / 2 + rand(0, 2)), 0.25, z);
       scene.add(b); decor.push(b);
-      z -= rand(7, 11);
+      z -= rand(9, 13);
     }
-    // neon lamp post
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 4.5, 8), M.post);
-    pole.position.set(side * 4.9, 2.25, z0 - 10);
-    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), M.neon[side > 0 ? 1 : 0]);
-    lamp.position.set(side * 4.9, 4.6, z0 - 10);
-    scene.add(pole, lamp); decor.push(pole, lamp);
+    const lamp = makeLamp(side); lamp.position.set(side * 4.95, 0.25, z0 - 6); scene.add(lamp); decor.push(lamp);
+    const tree = makeTree(); tree.position.set(side * rand(6.5, 8.5), 0.25, z0 - rand(14, 22)); tree.rotation.y = rand(0, 6); scene.add(tree); decor.push(tree);
+    if (Math.random() < 0.5) { const b = makeBench(side); b.position.set(side * 6.2, 0.25, z0 - rand(26, 32)); scene.add(b); decor.push(b); }
   });
 }
 
@@ -276,6 +306,7 @@ function startRun() {
 function toMenu() {
   resetRun();
   S.mode = 'menu';
+  camPos.set(0, 2.3, S.z + 5);
   play('Idle', 0.3);
   updateMenu();
   showScreen('menu');
@@ -298,7 +329,7 @@ function activatePower(kind) {
 function renderPowers() {
   const wrap = $('powers');
   const active = ['magnet', 'boots', 'double', 'shield'].filter(k => (k === 'shield' ? S.shield : k === 'boots' ? S.flying > 0 : S[k] > 0));
-  wrap.innerHTML = active.map(k => `<div class="power" data-k="${k}"><span style="color:${POWER_COLOR[k]}">${POWER_LABEL[k]}</span>${k === 'shield' ? '' : `<div class="bar"><i style="background:${POWER_COLOR[k]}"></i></div>`}</div>`).join('');
+  wrap.innerHTML = active.map(k => `<div class="power" data-k="${k}"><span class="dot" style="background:${POWER_COLOR[k]}"></span><span>${POWER_LABEL[k]}</span>${k === 'shield' ? '' : `<div class="bar"><i style="background:${POWER_COLOR[k]}"></i></div>`}</div>`).join('');
 }
 function tickPowerBars() {
   document.querySelectorAll('.power').forEach(el => {
@@ -311,10 +342,11 @@ function tickPowerBars() {
 function crash(reason) {
   if (S.invuln > 0 || S.flying > 0) return;
   if (S.shield) {
-    S.shield = false; S.invuln = 1.6; sfx.shield(); toast('SHIELD SAVED YOU!'); renderPowers();
+    S.shield = false; S.invuln = 1.6; sfx.shield(); fx.burst(new THREE.Vector3(S.x, S.y + 1, S.z), 0x4dc9ff); toast('SHIELD SAVED YOU!'); renderPowers();
     return;
   }
   S.mode = 'dead'; S.deadT = 0; S.shake = 0.5;
+  fx.crash(new THREE.Vector3(S.x, S.y + 1, S.z - 0.5));
   sfx.crash();
   play('Death', 0.1, true);
   $('over-title').textContent = reason === 'caught' ? 'Caught!' : 'Crash!';
@@ -395,6 +427,10 @@ $('btn-home').addEventListener('click', toMenu);
 $('btn-quit').addEventListener('click', toMenu);
 $('btn-pause').addEventListener('click', togglePause);
 $('btn-resume').addEventListener('click', togglePause);
+let soundOn = store.get('sound', true);
+function applySound() { setMuted(!soundOn); $('ic-waves').style.display = soundOn ? '' : 'none'; }
+$('btn-sound').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); unlockAudio(); applySound(); sfx.lane(); });
+applySound();
 
 /* ================= simulation ================= */
 function groundHeight() {
@@ -444,6 +480,7 @@ function stepRun(dt) {
     if (S.y <= gH) {
       const wasAir = S.vy < -2;
       S.y = gH; S.vy = 0;
+      if (wasAir) fx.dust(player.position);
       if (wasAir && current === actions.Jump) play('Running', 0.12, false, 1.25);
       if (hadFly && current !== actions.Running) play('Running', 0.12, false, 1.25);
     }
@@ -482,17 +519,17 @@ function stepRun(dt) {
     const d2 = (g.position.x - px) ** 2 + (g.position.y - py) ** 2 + (g.position.z - pz) ** 2;
     if (d2 < 1.3) {
       scene.remove(g); gears.splice(i, 1);
-      S.gearsRun += S.double > 0 ? 2 : 1; sfx.gear();
+      S.gearsRun += S.double > 0 ? 2 : 1; sfx.gear(); fx.sparkle(g.position);
       $('hud-gears').textContent = S.gearsRun;
     } else if (g.position.z > pz + 12) { scene.remove(g); gears.splice(i, 1); }
   }
   // power-ups
   for (let i = powers.length - 1; i >= 0; i--) {
     const p = powers[i];
-    p.rotation.y += dt * 2; p.userData.ring.rotation.x += dt * 3;
+    p.rotation.y += dt * 2; p.userData.ring.rotation.x += dt * 3; p.userData.ring2.rotation.z += dt * 2;
     p.position.y = 1.2 + Math.sin(S.time * 3 + i) * 0.15;
     const d2 = (p.position.x - px) ** 2 + (p.position.y - py) ** 2 + (p.position.z - pz) ** 2;
-    if (d2 < 2.2) { scene.remove(p); powers.splice(i, 1); activatePower(p.userData.kind); }
+    if (d2 < 2.2) { scene.remove(p); powers.splice(i, 1); fx.burst(p.position, { magnet: 0xff3b5c, boots: 0xff8a2b, shield: 0x4dc9ff, double: 0xffd84d }[p.userData.kind]); activatePower(p.userData.kind); }
     else if (p.position.z > pz + 12) { scene.remove(p); powers.splice(i, 1); }
   }
 
@@ -513,6 +550,8 @@ function updateVisuals(dt, t) {
   player.position.set(S.x, S.y, S.z);
   // lean into lane changes
   body.rotation.z = (S.x - LANES[S.lane]) * 0.12;
+  // face the camera on the menu, face down the track while running
+  body.rotation.y += ((S.mode === 'menu' ? Math.PI : 0) - body.rotation.y) * Math.min(1, dt * 8);
   // slide squash
   const sl = S.slide > 0 ? 1 : 0;
   body.scale.y += ((sl ? 0.5 : 1) - body.scale.y) * Math.min(1, dt * 18);
@@ -534,9 +573,9 @@ function updateVisuals(dt, t) {
   const portrait = window.innerWidth < window.innerHeight;
   if (S.mode === 'menu') {
     const a = Math.sin(t * 0.3) * 0.35;
-    tmp.set(Math.sin(a) * 6, 2.6, S.z - Math.cos(a) * 6);
+    tmp.set(Math.sin(a) * 5, 2.3, S.z + Math.cos(a) * 5);
     camPos.lerp(tmp, Math.min(1, dt * 2));
-    camLook.set(0, 1.4, S.z);
+    camLook.set(0, 1.5, S.z);
   } else {
     tmp.set(S.x * 0.55, S.y * 0.55 + (portrait ? 4.6 : 4.2), S.z + (portrait ? 8.6 : 7.6));
     camPos.lerp(tmp, Math.min(1, dt * 6));
@@ -551,13 +590,17 @@ function updateVisuals(dt, t) {
   sunDisk.position.set(camera.position.x - 40, 30, camera.position.z - 420);
   sunDisk.lookAt(camera.position);
   road.position.set(0, 0, S.z - ROAD_LEN / 2 + 40);
-  M.road.map.offset.y = -road.position.z * 18 / ROAD_LEN;
+  M.road.map.offset.y = -road.position.z * 16 / ROAD_LEN;
+  M.walk.map.offset.y = -road.position.z * 40 / ROAD_LEN;
   walks.forEach(w => { w.position.z = road.position.z; });
+  curbs.forEach(c => { c.position.z = road.position.z; });
   ground.position.z = road.position.z;
   sun.position.set(S.x - 6, S.y + 16, S.z + 8);
   sun.target.position.set(S.x, S.y, S.z - 4);
   rim.position.set(S.x + 6, 5, S.z - 12); rim.target.position.set(S.x, 1, S.z);
 
+  fx.update(dt, player.position, S.speed, S.mode === 'run');
+  if (S.flying > 0 && Math.random() < 0.6) fx.sparkle(new THREE.Vector3(S.x, S.y - 0.3, S.z + 0.3), 0xff8a2b);
   if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) $('toast').classList.remove('on'); }
 }
 
